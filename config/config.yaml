@@ -2,11 +2,9 @@
 
 # 登录配置
 login:
-  enabled: true  # 是否需要登录
   login_url: "http://y.chinadtc.org.cn/login"  # 登录页面URL
-  form_url: "http://y.chinadtc.org.cn/entering/"  # 登录后要访问的表单页面URL（修改为实际URL）
-  username: "330621241001"  # 登录用户名（请修改）
-  password: "Yaojike2022,"  # 登录密码（请修改）
+  username: "330621241001"  # 登录用户名
+  password: "Yaojike2022,"  # 登录密码
 
   # 登录表单元素定位器（根据实际登录页面修改）
   elements:
@@ -25,7 +23,48 @@ login:
   # 登录成功验证（用于判断是否登录成功）
   success_indicator:
     type: "url_contains"  # 验证方式：url_contains（URL包含特定字符串）, element_exists（页面存在特定元素）
-    value: "http://y.chinadtc.org.cn/entering/"  # 登录成功后URL应该包含的字符串（或元素定位器）
+    value: "http://y.chinadtc.org.cn/entering/"  # 登录成功后URL应该包含的字符串
+
+  # 登录后的确认提示
+  confirmation:
+    type: "element"  # 提示类型：element（页面元素按钮）, alert（浏览器原生弹窗）
+    button:
+      locator: "xpath"  # 确认按钮的定位方式
+      value: "//button[@onclick='closeShade(this)']"  # 确认按钮定位器
+    wait_time: 4  # 等待提示出现的时间（秒）
+
+# 月份选择配置
+month_selection:
+  month: "current"  # 报表月份：current=当前月，或指定格式如 "2025-10"
+  element:
+    locator: "id"
+    value: "report"  # 月份输入框的 id
+
+  # 月份选择后的确认按钮
+  confirm_button:
+    locator: "xpath"
+    value: "//input[@onclick='subInfo()']"  # 确认按钮定位器
+
+# 录入按钮配置
+entry_button:
+  locator: "xpath"
+  value: "//i[text()='录入功能']"  # 录入按钮定位器
+  wait_time: 2  # 等待按钮出现的时间（秒）
+
+# 功能按钮配置
+function_button:
+  type: "outpatient"  # 功能类型：outpatient=门诊处方用药录入, emergency=急诊处方用药录入
+  wait_time: 2  # 等待按钮出现的时间（秒）
+
+  # 门诊处方用药录入按钮
+  outpatient:
+    locator: "xpath"
+    value: "//a[@href='/entering/mjz/index/mjztype/1']"
+
+  # 急诊处方用药录入按钮
+  emergency:
+    locator: "xpath"
+    value: "//a[@href='/entering/mjz/index/mjztype/2']"
 
 # 目标网站配置
 website:

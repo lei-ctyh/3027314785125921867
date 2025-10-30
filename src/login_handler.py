@@ -49,11 +49,6 @@ class LoginHandler:
             True 如果登录成功，False 否则
         """
         try:
-            # 检查是否启用登录
-            if not self.login_config.get("enabled", False):
-                logger.info("登录功能未启用，跳过登录")
-                return True
-
             logger.info("开始执行登录流程...")
 
             # 打开登录页面
@@ -205,29 +200,4 @@ class LoginHandler:
 
         except Exception as e:
             logger.error(f"验证登录状态失败: {e}")
-            return False
-
-    def navigate_to_form_page(self) -> bool:
-        """
-        登录成功后导航到表单页面
-
-        Returns:
-            True 如果导航成功
-        """
-        try:
-            form_url = self.login_config.get("form_url")
-
-            if not form_url:
-                logger.warning("未配置表单页面URL，跳过导航")
-                return True
-
-            logger.info(f"导航到表单页面: {form_url}")
-            self.driver.get(form_url)
-            time.sleep(2)  # 等待页面加载
-
-            logger.info("成功导航到表单页面")
-            return True
-
-        except Exception as e:
-            logger.error(f"导航到表单页面失败: {e}")
             return False
