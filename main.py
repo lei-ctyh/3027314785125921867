@@ -427,29 +427,17 @@ def main():
         # 初始化组件
         logger.info("初始化组件...")
 
-        # 1. 数据读取器
-        data_config = config.get("data", {})
-        reader = DataReader(
-            file_path=data_config.get("input_file"),
-            sheet_name=data_config.get("sheet_name", "Sheet1")
-        )
-
-        # 2. 结果导出器
-        exporter = ResultExporter(
-            output_file=data_config.get("output_file")
-        )
-
-        # 3. 浏览器驱动管理器
+        # 1. 浏览器驱动管理器
         browser_config = config.get("browser", {})
         driver_manager = DriverManager(
             headless=browser_config.get("headless", False),
             window_size=browser_config.get("window_size", "1920,1080")
         )
 
-        # 4. 创建驱动
+        # 2. 创建驱动
         driver = driver_manager.create_driver()
 
-        # 5. 登录
+        # 3. 登录
         login_config = config.get("login", {})
         logger.info("=" * 60)
         logger.info("开始登录流程")
@@ -533,14 +521,47 @@ def main():
         logger.info("功能按钮点击完成")
         logger.info("=" * 60)
 
-        # 10. 表单填写器
+        # 10. 根据功能类型初始化数据读取器、结果导出器和表单填写器
+        function_type = function_button_config.get("type", "outpatient")
+        logger.info("=" * 60)
+        logger.info(f"初始化功能配置（类型: {function_type}）")
+        logger.info("=" * 60)
+
+        # 获取对应功能的配置
+        functions_config = config.get("functions", {})
+        current_function_config = functions_config.get(function_type, {})
+
+        if not current_function_config:
+            raise Exception(f"未找到功能类型 '{function_type}' 的配置")
+
+        # 数据文件配置
+        data_config = current_function_config.get("data", {})
+        logger.info(f"数据文件: {data_config.get('input_file')}")
+
+        # 初始化数据读取器
+        reader = DataReader(
+            file_path=data_config.get("input_file"),
+            sheet_name=data_config.get("sheet_name", "Sheet1")
+        )
+
+        # 初始化结果导出器
+        exporter = ResultExporter(
+            output_file=data_config.get("output_file")
+        )
+
+        # 初始化表单填写器
+        form_elements_config = current_function_config.get("form_elements", {})
+        logger.info(f"表单字段数量: {len(form_elements_config)}")
+
         form_filler = FormFiller(
             driver=driver,
-            form_elements=config.get("form_elements", {}),
+            form_elements=form_elements_config,
             timeout=browser_config.get("timeout", 30)
         )
 
-        # 读取数据
+        logger.info("功能配置初始化完成")
+
+        # 11. 读取数据并处理
         logger.info("读取输入数据...")
         data_list = reader.read_data()
         total_count = len(data_list)
