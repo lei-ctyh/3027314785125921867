@@ -1,0 +1,30 @@
+/.venv/
+.idea
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+env/
+venv/
+ENV/
+
+# 数据文件（保留示例，忽略实际数据）
+data/input_data.xlsx
+
+# 输出结果
+output/*.xlsx
+
+# 日志文件
+logs/*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Demo 文件
+selenium_demo.py

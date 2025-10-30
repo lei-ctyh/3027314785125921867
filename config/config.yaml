@@ -1,0 +1,87 @@
+# 自动化表单填写配置文件
+
+# 登录配置
+login:
+  enabled: true  # 是否需要登录
+  login_url: "http://y.chinadtc.org.cn/login"  # 登录页面URL
+  form_url: "http://y.chinadtc.org.cn/entering/"  # 登录后要访问的表单页面URL（修改为实际URL）
+  username: "330621241001"  # 登录用户名（请修改）
+  password: "Yaojike2022,"  # 登录密码（请修改）
+
+  # 登录表单元素定位器（根据实际登录页面修改）
+  elements:
+    username_field:
+      locator: "id"  # 定位方式：id, name, xpath, css_selector
+      value: "account"  # 用户名输入框的定位器值
+
+    password_field:
+      locator: "id"
+      value: "accountPwd"  # 密码输入框的定位器值
+
+    login_button:
+      locator: "css_selector"
+      value: ".login-btn"  # 登录按钮的定位器值
+
+  # 登录成功验证（用于判断是否登录成功）
+  success_indicator:
+    type: "url_contains"  # 验证方式：url_contains（URL包含特定字符串）, element_exists（页面存在特定元素）
+    value: "http://y.chinadtc.org.cn/entering/"  # 登录成功后URL应该包含的字符串（或元素定位器）
+
+# 目标网站配置
+website:
+  url: "http://y.chinadtc.org.cn/form"  # 表单页面URL（与login.form_url相同）
+  name: "示例表单网站"
+
+# 浏览器配置
+browser:
+  headless: false  # 是否无头模式（true=后台运行，false=显示浏览器）
+  window_size: "1920,1080"  # 浏览器窗口大小
+  timeout: 30  # 默认超时时间（秒）
+
+# 表单元素定位器配置（根据实际表单修改）
+form_elements:
+  # 示例：文本输入框
+  name:
+    type: "input"  # 元素类型：input, select, textarea, button
+    locator: "id"  # 定位方式：id, name, xpath, css_selector, class_name
+    value: "name"  # 定位器的值
+
+  email:
+    type: "input"
+    locator: "id"
+    value: "email"
+
+  phone:
+    type: "input"
+    locator: "name"
+    value: "phone"
+
+  # 示例：下拉选择框
+  gender:
+    type: "select"
+    locator: "id"
+    value: "gender"
+
+  # 示例：文本域
+  message:
+    type: "textarea"
+    locator: "id"
+    value: "message"
+
+  # 示例：提交按钮
+  submit_button:
+    type: "button"
+    locator: "css_selector"
+    value: "button[type='submit']"
+
+# 数据文件配置
+data:
+  input_file: "data/input_data.xlsx"  # 输入数据文件路径
+  output_file: "output/results_{timestamp}.xlsx"  # 输出结果文件路径（{timestamp}会被替换为时间戳）
+  sheet_name: "Sheet1"  # Excel sheet 名称
+
+# 日志配置
+logging:
+  level: "INFO"  # 日志级别：DEBUG, INFO, WARNING, ERROR
+  file: "logs/app.log"  # 日志文件路径
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

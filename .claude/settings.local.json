@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python selenium_demo.py:*)",
+      "Read(//c/Users/hjsoft/.wdm/drivers/chromedriver/win64/141.0.7390.122/chromedriver-win32/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

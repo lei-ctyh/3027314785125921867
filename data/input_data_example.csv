@@ -1,0 +1,4 @@
+name,email,phone,gender,message
+张三,zhangsan@example.com,13800138000,男,测试消息1
+李四,lisi@example.com,13900139000,女,测试消息2
+王五,wangwu@example.com,13700137000,男,测试消息3
