@@ -55,6 +55,8 @@ class FormFiller:
             logger.info(f"开始填写表单，数据: {data}")
 
             for field_name, field_value in data.items():
+                field_name = field_name.split("\n")[0]
+
                 # 跳过空值
                 if field_value is None or str(field_value).strip() == "":
                     logger.debug(f"跳过空字段: {field_name}")
@@ -67,7 +69,33 @@ class FormFiller:
                     continue
 
                 # 填写字段
-                self._fill_field(field_name, field_value, element_config)
+                if field_name == "科室":
+                    field_value = field_value.replace(" ", "").replace("门诊", "")
+                    self._fill_field(field_name, field_value, element_config)
+                elif field_name == "年龄":
+                    field_value1 = field_value[-1]
+                    field_value = field_value[0:-2]
+                    element_config1 = self.form_elements.get("年龄单位")
+                    self._fill_field("年龄单位", field_value1, element_config1)
+                    self._fill_field(field_name, field_value, element_config)
+                elif field_name == "药品品种数":
+                    field_value = int(field_value)
+                    self._fill_field(field_name, field_value, element_config)
+                elif field_name == "注射剂":
+                    field_value = int(field_value)
+                    self._fill_field(field_name, field_value, element_config)
+                    element_config1 = self.form_elements.get("注射剂数量")
+                    self._fill_field("注射剂数量", 1, element_config1)
+                elif field_name == "诊断":
+                    field_values =  field_value.split(",")
+                    for i, value in enumerate(field_values[:5]):
+
+
+
+                else:
+                    self._fill_field(field_name, field_value, element_config)
+
+
                 time.sleep(0.5)  # 短暂延迟，模拟人工操作
 
             logger.info("表单填写完成")
@@ -114,9 +142,36 @@ class FormFiller:
                     select.select_by_visible_text(str(field_value))
                 logger.debug(f"选择下拉框 {field_name}: {field_value}")
 
+            elif element_type == "radio":
+                # 处理单选框：根据配置的options找到对应的value
+                options = config.get("options", {})
+                radio_value = options.get(str(field_value), str(field_value))
+
+                # 构造带value的选择器
+                if locator_type == "name":
+                    # 对于name类型，使用CSS选择器查找特定value的radio
+                    radio_by = By.CSS_SELECTOR
+                    radio_locator = f"input[name='{locator_value}'][value='{radio_value}']"
+                elif locator_type == "id":
+                    # 对于id类型，直接使用id（需要配置中指定完整的id）
+                    radio_by = By.ID
+                    radio_locator = f"{locator_value}"
+                else:
+                    radio_by = by
+                    radio_locator = locator_value
+
+                radio_element = self.driver.find_element(radio_by, radio_locator)
+                if not radio_element.is_selected():
+                    radio_element.click()
+                logger.debug(f"选择单选框 {field_name}: {field_value} (value={radio_value})")
+
             elif element_type == "button":
                 element.click()
                 logger.debug(f"点击按钮 {field_name}")
+
+            elif element_type == "hidden":
+                # 隐藏字段不需要填写，跳过
+                logger.debug(f"跳过隐藏字段 {field_name}")
 
             else:
                 logger.warning(f"未知元素类型: {element_type}")
