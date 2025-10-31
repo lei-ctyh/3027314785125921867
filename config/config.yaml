@@ -72,17 +72,21 @@ functions:
   outpatient:
     # 数据文件配置
     data:
-      input_file: "data/outpatient_data.xlsx"  # 门诊数据文件
+      input_file: "data/门诊2509.xls"  # 门诊数据文件
       output_file: "output/outpatient_results_{timestamp}.xlsx"  # 门诊结果文件
       sheet_name: "Sheet1"
 
     # 门诊表单元素定位器配置
     form_elements:
       # 示例：文本输入框（根据实际门诊表单修改）
-      name:
-        type: "input"
+      科室:
+        type: "select"
         locator: "id"
-        value: "name"
+        value: "department"
+      年龄:
+        type: "input"
+        locator: "name"
+        value: "age"
 
       # 示例：提交按钮
       submit_button:
