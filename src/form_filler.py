@@ -85,8 +85,9 @@ class FormFiller:
                     self._fill_field(field_name, field_value, element_config)
                 elif field_name == "注射剂":
                     self._fill_field(field_name, field_value, element_config)
-                    element_config1 = self.form_elements.get("注射剂数量")
-                    self._fill_field("注射剂数量", "1", element_config1)
+                    if field_value == '有':
+                        element_config1 = self.form_elements.get("注射剂数量")
+                        self._fill_field("注射剂数量", "1", element_config1)
                 elif field_name == "诊断":
                     field_values = field_value.replace("，",",").split(",")
                     for i, value in enumerate(field_values[:5]):

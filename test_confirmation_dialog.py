@@ -50,22 +50,35 @@ def test_final_confirmation():
     print("测试：完成后确认对话框")
     print("=" * 70)
 
-    message = """数据填写完成！
+    # 模拟真实的文件路径
+    from pathlib import Path
+    result_file_path = Path("C:/workspace/code/myself/sihuo/2025-10/3027314785125921867/output/outpatient_results_20251107_143025.xlsx").absolute()
+
+    message = f"""数据填写完成！
 
 总计：100 条
 成功：95 条
 失败：5 条
 
+📄 结果已保存到:
+{result_file_path}
+
 请在浏览器中检查填写结果，确认无误后：
 1. 手动点击"上报"按钮
 2. 等待上报完成
-3. 点击"我已完成，继续"按钮关闭程序"""
+3. 点击"我已完成，继续"按钮
+
+点击按钮后：
+• 浏览器将自动关闭
+• 结果文件夹将自动打开"""
 
     print("\n即将显示对话框...")
     print("\n请检查：")
     print("✓ 所有统计信息是否完整显示")
+    print("✓ 结果文件路径是否清晰可见")
     print("✓ 所有操作步骤是否清晰可见")
     print("✓ 底部按钮是否可见")
+    print("✓ 提示了浏览器会关闭和文件夹会自动打开")
     print("-" * 70)
 
     input("按回车键显示对话框...")
@@ -74,6 +87,8 @@ def test_final_confirmation():
 
     if confirmed:
         print("\n✓ 用户点击了'我已完成，继续'按钮")
+        print("✓ 此时浏览器会自动关闭")
+        print("✓ 结果文件夹会自动打开")
     else:
         print("\n✗ 对话框被关闭")
 

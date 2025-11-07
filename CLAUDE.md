@@ -15,7 +15,14 @@ python main.py
 The application now uses a GUI for configuration input. Users will see:
 1. Configuration GUI for login credentials, month, function type, and data file selection
 2. Confirmation dialog before starting automatic form filling
-3. Confirmation dialog after completion for manual report submission
+3. Confirmation dialog after completion for manual report submission (displays result file path)
+4. Result folder automatically opens after user confirmation
+
+### Quick Open Latest Result
+```bash
+python open_result.py         # Open latest result file
+python open_result.py --list  # List all result files
+```
 
 ### Testing GUI Only
 ```bash
@@ -151,6 +158,7 @@ The application has three GUI-based user interaction points:
    - Cannot be closed without confirming
 3. **Post-filling confirmation (main.py:668)**: Modal dialog waits for user to manually submit report
    - Cannot be closed without confirming
+   - Browser automatically closes after user confirms
 
 ## Configuration Notes
 

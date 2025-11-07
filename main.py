@@ -655,7 +655,10 @@ def main():
         # 导出结果
         logger.info("\n" + "=" * 60)
         logger.info("处理完成，导出结果...")
-        exporter.export_results(results)
+        export_success = exporter.export_results(results)
+
+        # 获取结果文件的绝对路径
+        result_file_path = exporter.output_file.absolute() if export_success else None
 
         # 统计信息
         logger.info("=" * 60)
@@ -663,30 +666,84 @@ def main():
         logger.info(f"成功: {success_count}")
         logger.info(f"失败: {fail_count}")
         logger.info(f"成功率: {success_count / total_count * 100:.2f}%")
+        if result_file_path:
+            logger.info(f"结果文件: {result_file_path}")
         logger.info("=" * 60)
 
         # 显示GUI确认对话框，等待用户上报
+        result_file_info = f"\n\n📄 结果已保存到:\n{result_file_path}" if result_file_path else ""
+
         final_message = f"""数据填写完成！
 
 总计：{total_count} 条
 成功：{success_count} 条
-失败：{fail_count} 条
+失败：{fail_count} 条{result_file_info}
 
 请在浏览器中检查填写结果，确认无误后：
 1. 手动点击"上报"按钮
 2. 等待上报完成
-3. 点击"我已完成，继续"按钮关闭程序"""
+3. 点击"我已完成，继续"按钮
+
+点击按钮后：
+• 浏览器将自动关闭
+• 结果文件夹将自动打开"""
 
         show_confirmation_dialog("上报确认", final_message)
 
-        logger.info("用户确认上报完成，程序即将关闭")
+        logger.info("用户确认上报完成，准备关闭浏览器")
+
+        # 打开结果文件所在的文件夹
+        if result_file_path and result_file_path.exists():
+            try:
+                import subprocess
+                import platform
+
+                folder_path = result_file_path.parent
+
+                if platform.system() == "Windows":
+                    # Windows: 打开文件夹并选中文件
+                    subprocess.run(['explorer', '/select,', str(result_file_path)])
+                elif platform.system() == "Darwin":
+                    # macOS
+                    subprocess.run(['open', '-R', str(result_file_path)])
+                else:
+                    # Linux
+                    subprocess.run(['xdg-open', str(folder_path)])
+
+                logger.info(f"已打开结果文件夹: {folder_path}")
+            except Exception as e:
+                logger.warning(f"无法自动打开文件夹: {e}")
+                logger.info(f"请手动打开: {result_file_path.parent}")
+
+        # 关闭浏览器
+        try:
+            driver_manager.quit_driver()
+            logger.info("浏览器已关闭")
+        except Exception as e:
+            logger.warning(f"关闭浏览器时出错: {e}")
+
+        logger.info("程序执行完成")
 
 
     except KeyboardInterrupt:
         logger.warning("\n用户中断程序")
+        # 关闭浏览器
+        try:
+            if 'driver_manager' in locals():
+                driver_manager.quit_driver()
+                logger.info("浏览器已关闭")
+        except:
+            pass
 
     except Exception as e:
         logger.error(f"程序执行出错: {e}", exc_info=True)
+        # 关闭浏览器
+        try:
+            if 'driver_manager' in locals():
+                driver_manager.quit_driver()
+                logger.info("浏览器已关闭")
+        except:
+            pass
 
     finally:
         logger.info("程序结束")
