@@ -4,7 +4,8 @@
 
 import logging
 import time
-from typing import Dict, Any
+import requests
+from typing import Dict, Any, List, Optional
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
@@ -40,6 +41,7 @@ class FormFiller:
         self.form_elements = form_elements
         self.timeout = timeout
         self.wait = WebDriverWait(driver, timeout)
+        self.session = requests.Session()  # 用于API请求
 
     def fill_form(self, data: Dict[str, Any]) -> bool:
         """
@@ -55,7 +57,7 @@ class FormFiller:
             logger.info(f"开始填写表单，数据: {data}")
 
             for field_name, field_value in data.items():
-                field_name = field_name.split("\n")[0]
+                field_name = field_name.split("\n")[0].strip()
 
                 # 跳过空值
                 if field_value is None or str(field_value).strip() == "":
@@ -64,7 +66,7 @@ class FormFiller:
 
                 # 获取元素配置
                 element_config = self.form_elements.get(field_name)
-                if not element_config:
+                if not element_config and field_name != '诊断':
                     logger.warning(f"配置中未找到字段: {field_name}")
                     continue
 
@@ -74,7 +76,7 @@ class FormFiller:
                     self._fill_field(field_name, field_value, element_config)
                 elif field_name == "年龄":
                     field_value1 = field_value[-1]
-                    field_value = field_value[0:-2]
+                    field_value = field_value[0:-1]
                     element_config1 = self.form_elements.get("年龄单位")
                     self._fill_field("年龄单位", field_value1, element_config1)
                     self._fill_field(field_name, field_value, element_config)
@@ -82,16 +84,31 @@ class FormFiller:
                     field_value = int(field_value)
                     self._fill_field(field_name, field_value, element_config)
                 elif field_name == "注射剂":
-                    field_value = int(field_value)
                     self._fill_field(field_name, field_value, element_config)
                     element_config1 = self.form_elements.get("注射剂数量")
-                    self._fill_field("注射剂数量", 1, element_config1)
+                    self._fill_field("注射剂数量", "1", element_config1)
                 elif field_name == "诊断":
-                    field_values =  field_value.split(",")
+                    field_values = field_value.replace("，",",").split(",")
                     for i, value in enumerate(field_values[:5]):
+                        if not value.strip():
+                            continue
 
+                        # 查询诊断编码
+                        diag_info = self._search_diagnosis(value.strip())
+                        if diag_info:
+                            # 填入诊断名称和编码
+                            index = i + 1
+                            name_config = self.form_elements.get(f"诊断{index}_名称")
+                            code_config = self.form_elements.get(f"诊断{index}_编码")
 
+                            if name_config:
+                                self._fill_field(f"诊断{index}_名称", diag_info['name'], name_config)
+                            if code_config:
+                                self._fill_field(f"诊断{index}_编码", diag_info['code'], code_config)
 
+                            logger.info(f"填入诊断{index}: {diag_info['name']} ({diag_info['code']})")
+                        else:
+                            logger.warning(f"未找到诊断信息: {value}")
                 else:
                     self._fill_field(field_name, field_value, element_config)
 
@@ -99,10 +116,19 @@ class FormFiller:
                 time.sleep(0.5)  # 短暂延迟，模拟人工操作
 
             logger.info("表单填写完成")
-            return True
+
+            # 填写成功，点击提交按钮
+            if self.submit_form("submit_button"):
+                return True
+            else:
+                logger.error("提交失败，点击重置按钮")
+                self._click_button("reset_button")
+                return False
 
         except Exception as e:
             logger.error(f"填写表单失败: {e}")
+            # 填写失败，点击重置按钮
+            self._click_button("reset_button")
             return False
 
     def _fill_field(self, field_name: str, field_value: Any, config: Dict) -> None:
@@ -129,9 +155,24 @@ class FormFiller:
 
             # 根据元素类型填写
             if element_type == "input" or element_type == "textarea":
-                element.clear()
-                element.send_keys(str(field_value))
-                logger.debug(f"填写文本字段 {field_name}: {field_value}")
+                # 对于诊断名称和编码，使用JavaScript直接设置值，避免触发onfocus事件
+                if "诊断" in field_name and ("名称" in field_name or "编码" in field_name):
+                    # 先移除onfocus和onblur事件
+                    self.driver.execute_script(
+                        "arguments[0].removeAttribute('onfocus');"
+                        "arguments[0].removeAttribute('onblur');",
+                        element
+                    )
+                    # 使用JavaScript设置值
+                    self.driver.execute_script(
+                        "arguments[0].value = arguments[1];",
+                        element, str(field_value)
+                    )
+                    logger.debug(f"使用JS填写诊断字段 {field_name}: {field_value}")
+                else:
+                    element.clear()
+                    element.send_keys(str(field_value))
+                    logger.debug(f"填写文本字段 {field_name}: {field_value}")
 
             elif element_type == "select":
                 select = Select(element)
@@ -209,12 +250,60 @@ class FormFiller:
             )
 
             button.click()
+            logger.info("已点击提交按钮")
+            time.sleep(1)  # 等待 alert 弹出
+
+            # 处理 alert 弹窗
+            try:
+                logger.info("等待 Alert 弹窗...")
+                alert = self.driver.switch_to.alert
+                alert_text = alert.text
+                logger.info(f"检测到 Alert 弹窗: {alert_text}")
+                alert.accept()  # 点击确认
+                logger.info("已点击 Alert 确认按钮")
+                time.sleep(1)  # 等待 alert 关闭
+            except Exception as alert_error:
+                logger.debug(f"未检测到 Alert 弹窗或处理失败: {alert_error}")
+
             logger.info("表单提交成功")
-            time.sleep(2)  # 等待提交完成
             return True
 
         except Exception as e:
             logger.error(f"提交表单失败: {e}")
+            return False
+
+    def _click_button(self, button_name: str) -> bool:
+        """
+        点击按钮（通用方法）
+
+        Args:
+            button_name: 按钮在配置中的名称
+
+        Returns:
+            True 如果点击成功
+        """
+        try:
+            button_config = self.form_elements.get(button_name)
+            if not button_config:
+                logger.warning(f"配置中未找到按钮: {button_name}")
+                return False
+
+            locator_type = button_config.get("locator", "id")
+            locator_value = button_config.get("value")
+            by = self.LOCATOR_MAP.get(locator_type, By.ID)
+
+            # 等待按钮可点击
+            button = self.wait.until(
+                EC.element_to_be_clickable((by, locator_value))
+            )
+
+            button.click()
+            logger.info(f"点击按钮 {button_name} 成功")
+            time.sleep(1)  # 短暂等待
+            return True
+
+        except Exception as e:
+            logger.warning(f"点击按钮 {button_name} 失败: {e}")
             return False
 
     def check_success(self, success_indicator: Dict) -> bool:
@@ -253,3 +342,76 @@ class FormFiller:
         except Exception as e:
             logger.error(f"检查成功状态失败: {e}")
             return False
+
+    def _search_diagnosis(self, keyword: str) -> Optional[Dict[str, str]]:
+        """
+        查询诊断编码和名称
+
+        Args:
+            keyword: 诊断关键词
+
+        Returns:
+            包含诊断名称和编码的字典，格式: {'name': '诊断名称', 'code': '编码'}
+            如果未找到则返回 None
+        """
+        try:
+            # 从浏览器获取Cookie
+            cookies = self.driver.get_cookies()
+            cookie_dict = {cookie['name']: cookie['value'] for cookie in cookies}
+
+            # 构造请求
+            url = "http://y.chinadtc.org.cn/entering/dict/search_dict"
+            headers = {
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+                'Cookie': 'PHPSESSID=' + cookie_dict['PHPSESSID']
+            }
+
+            # 构造表单数据（multipart/form-data格式）
+            data = {
+                'dict_table': 'dict_diag',
+                'search_field': 'diag_pym',
+                'order_field': 'diag_id',
+                'szimu': keyword
+            }
+
+            # 将data转换成multipart形式
+            # 每个字段作为元组，第二个元素为None表示不是文件
+            files = []
+            for key, value in data.items():
+                files.append((key, (None, value)))
+
+            # 发送请求，不设置Content-Type，让requests自动设置（包含boundary）
+            response = self.session.post(url, files=files, headers=headers, timeout=10)
+            response.raise_for_status()
+
+            # 解析响应
+            results = response.json()
+
+            if not results or len(results) == 0:
+                logger.warning(f"未找到诊断: {keyword}")
+                return None
+
+            # 选择最相似的结果（这里简单取第一个）
+            # 可以实现更复杂的相似度匹配算法
+            best_match = results[0]
+
+            diag_info = {
+                'name': best_match['diag_name'],
+                'code': best_match['diag_code']
+            }
+
+            logger.info(f"找到诊断: {keyword} -> {diag_info['name']} ({diag_info['code']})")
+            return diag_info
+
+        except requests.RequestException as e:
+            logger.error(f"查询诊断API失败: {e}")
+            return None
+        except (KeyError, IndexError, ValueError) as e:
+            logger.error(f"解析诊断结果失败: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"查询诊断失败: {e}")
+            return None

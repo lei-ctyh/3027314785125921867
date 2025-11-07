@@ -35,7 +35,7 @@ login:
 
 # 月份选择配置
 month_selection:
-  month: "current"  # 报表月份：current=当前月，或指定格式如 "2025-10"
+  month: "2025-09"  # 报表月份：current=当前月，或指定格式如 "2025-10"
   element:
     locator: "id"
     value: "report"  # 月份输入框的 id

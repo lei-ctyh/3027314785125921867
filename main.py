@@ -562,6 +562,21 @@ def main():
         logger.info("功能配置初始化完成")
 
         # 11. 读取数据并处理
+        # 等待用户确认开始填写
+        logger.info("=" * 60)
+        logger.info("准备开始填写数据")
+        logger.info("=" * 60)
+
+        print("\n" + "=" * 60)
+        print("请在浏览器中确认以下信息：")
+        print("1. 请手动输入报表日期")
+        print("2. 请手动输入门诊总量")
+        print("3. 确认所有信息无误后，按回车键继续自动填写...")
+        print("=" * 60)
+        input("\n按回车键继续...")
+
+        logger.info("用户确认完成，开始读取数据...")
+
         logger.info("读取输入数据...")
         data_list = reader.read_data()
         total_count = len(data_list)
@@ -576,17 +591,11 @@ def main():
             logger.info(f"\n处理第 {index}/{total_count} 条数据...")
 
             try:
-                # 填写表单
+                # 填写表单（包含提交）
                 fill_success = form_filler.fill_form(row_data)
 
                 if not fill_success:
-                    raise Exception("表单填写失败")
-
-                # 提交表单
-                submit_success = form_filler.submit_form()
-
-                if not submit_success:
-                    raise Exception("表单提交失败")
+                    raise Exception("表单填写或提交失败")
 
                 # 记录成功结果
                 result = exporter.create_result_entry(
@@ -598,10 +607,8 @@ def main():
                 success_count += 1
                 logger.info(f"第 {index} 条数据处理成功")
 
-                # 刷新页面，准备处理下一条数据
-                if index < total_count:
-                    driver.refresh()
-                    logger.info("页面已刷新，准备处理下一条数据")
+                # 等待一下，避免提交太快
+                time.sleep(1)
 
             except Exception as e:
                 # 记录失败结果
@@ -614,11 +621,6 @@ def main():
                 fail_count += 1
                 logger.error(f"第 {index} 条数据处理失败: {e}")
 
-                # 失败后刷新页面
-                try:
-                    driver.refresh()
-                except:
-                    pass
 
         # 导出结果
         logger.info("\n" + "=" * 60)
@@ -633,6 +635,22 @@ def main():
         logger.info(f"成功率: {success_count / total_count * 100:.2f}%")
         logger.info("=" * 60)
 
+        # 等待用户确认上报
+        print("\n" + "=" * 60)
+        print("数据填写完成！")
+        print(f"总计：{total_count} 条")
+        print(f"成功：{success_count} 条")
+        print(f"失败：{fail_count} 条")
+        print("=" * 60)
+        print("\n请在浏览器中检查填写结果")
+        print("确认无误后，请手动点击上报按钮")
+        print("\n上报完成后，按回车键关闭程序...")
+        print("=" * 60)
+        input("\n按回车键关闭程序...")
+
+        logger.info("用户确认上报完成，程序即将关闭")
+
+
     except KeyboardInterrupt:
         logger.warning("\n用户中断程序")
 
@@ -640,12 +658,6 @@ def main():
         logger.error(f"程序执行出错: {e}", exc_info=True)
 
     finally:
-        # 关闭浏览器
-        try:
-            driver_manager.quit_driver()
-        except:
-            pass
-
         logger.info("程序结束")
 
 
