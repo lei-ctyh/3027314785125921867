@@ -76,6 +76,12 @@ functions:
       output_file: "output/outpatient_results_{timestamp}.xlsx"  # 门诊结果文件
       sheet_name: "Sheet1"
 
+    # 表单提交后的抗菌药处理配置
+    antibiotic_handling:
+      enabled: true  # 是否启用抗菌药信息处理
+      result_table_id: "outpatientTable"  # 结果表格的ID
+      wait_after_submit: 2  # 表单提交后等待表格刷新的时间（秒）
+
     # 门诊表单元素定位器配置
     form_elements:
       # 所属科室选择
@@ -248,6 +254,12 @@ functions:
       input_file: "data/emergency_data.xlsx"  # 急诊数据文件
       output_file: "output/emergency_results_{timestamp}.xlsx"  # 急诊结果文件
       sheet_name: "Sheet1"
+
+    # 表单提交后的抗菌药处理配置
+    antibiotic_handling:
+      enabled: true  # 是否启用抗菌药信息处理
+      result_table_id: "outpatientTable"  # 结果表格的ID（急诊与门诊使用同一个表格）
+      wait_after_submit: 2  # 表单提交后等待表格刷新的时间（秒）
 
     # 急诊表单元素定位器配置
     form_elements:

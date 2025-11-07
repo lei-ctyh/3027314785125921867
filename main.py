@@ -574,12 +574,15 @@ def main():
 
         # 初始化表单填写器
         form_elements_config = current_function_config.get("form_elements", {})
+        antibiotic_config = current_function_config.get("antibiotic_handling", {})
         logger.info(f"表单字段数量: {len(form_elements_config)}")
+        logger.info(f"抗菌药处理: {'启用' if antibiotic_config.get('enabled', False) else '禁用'}")
 
         form_filler = FormFiller(
             driver=driver,
             form_elements=form_elements_config,
-            timeout=browser_config.get("timeout", 30)
+            timeout=browser_config.get("timeout", 30),
+            antibiotic_config=antibiotic_config
         )
 
         logger.info("功能配置初始化完成")
@@ -626,6 +629,15 @@ def main():
 
                 if not fill_success:
                     raise Exception("表单填写或提交失败")
+                else:
+                    # 表单填写成功之后，还需要对新增的记录录入一些信息
+                    logger.info("开始处理抗菌药信息...")
+                    antibiotic_success = form_filler.handle_antibiotic_info(row_data)
+
+                    if not antibiotic_success:
+                        logger.warning("抗菌药信息处理失败，但继续执行")
+                    else:
+                        logger.info("抗菌药信息处理成功")
 
                 # 记录成功结果
                 result = exporter.create_result_entry(

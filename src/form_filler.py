@@ -28,7 +28,7 @@ class FormFiller:
         "link_text": By.LINK_TEXT,
     }
 
-    def __init__(self, driver, form_elements: Dict, timeout: int = 30):
+    def __init__(self, driver, form_elements: Dict, timeout: int = 30, antibiotic_config: Dict = None):
         """
         初始化表单填写器
 
@@ -36,12 +36,14 @@ class FormFiller:
             driver: WebDriver 实例
             form_elements: 表单元素配置
             timeout: 超时时间（秒）
+            antibiotic_config: 抗菌药处理配置
         """
         self.driver = driver
         self.form_elements = form_elements
         self.timeout = timeout
         self.wait = WebDriverWait(driver, timeout)
         self.session = requests.Session()  # 用于API请求
+        self.antibiotic_config = antibiotic_config or {}
 
     def fill_form(self, data: Dict[str, Any]) -> bool:
         """
@@ -416,3 +418,136 @@ class FormFiller:
         except Exception as e:
             logger.error(f"查询诊断失败: {e}")
             return None
+
+    def handle_antibiotic_info(self, row_data: Dict[str, Any]) -> bool:
+        """
+        处理新增记录的抗菌药信息
+
+        Args:
+            row_data: 当前行的数据字典
+
+        Returns:
+            True 如果处理成功，False 否则
+        """
+        try:
+            # 检查是否启用抗菌药处理
+            if not self.antibiotic_config.get("enabled", False):
+                logger.info("抗菌药处理未启用，跳过")
+                return True
+
+            # 获取抗菌药有/无的值（可能带换行符）
+            antibiotic_value = None
+            for key in row_data.keys():
+                if '抗菌药' in key and ('有' in key or '无' in key):
+                    antibiotic_value = str(row_data[key]).strip()
+                    break
+
+            if not antibiotic_value or antibiotic_value == '':
+                logger.info("未找到抗菌药字段或值为空，跳过抗菌药处理")
+                return True
+
+            logger.info(f"开始处理抗菌药信息，值: {antibiotic_value}")
+
+            # 从配置中获取参数
+            table_id = self.antibiotic_config.get("result_table_id", "outpatientTable")
+            wait_time = self.antibiotic_config.get("wait_after_submit", 2)
+
+            # 等待表格刷新（等待新记录添加到表格中）
+            time.sleep(wait_time)
+
+            # 查找表格
+            table = self.wait.until(
+                EC.presence_of_element_located((By.ID, table_id))
+            )
+            logger.debug(f"找到结果表格: {table_id}")
+
+            # 查找表格的第一个数据行（跳过表头）
+            # 表头的class是"tabletitle"，所以我们找第一个没有这个class的tr
+            rows = table.find_elements(By.TAG_NAME, "tr")
+            first_data_row = None
+            for row in rows:
+                row_class = row.get_attribute("class") or ""
+                if "tabletitle" not in row_class and row.get_attribute("id"):
+                    first_data_row = row
+                    break
+
+            if not first_data_row:
+                logger.error("未找到表格的第一行数据")
+                return False
+
+            row_id = first_data_row.get_attribute("id")
+            logger.info(f"找到新增记录行: {row_id}")
+
+            # 在这一行中查找抗菌药的单选按钮
+            # 先找到所有的radio按钮，通过name属性识别（name="drugsMoney{序号}"）
+            radio_buttons = first_data_row.find_elements(By.CSS_SELECTOR, "input[type='radio'][name^='drugsMoney']")
+
+            if len(radio_buttons) < 2:
+                logger.error(f"未找到足够的抗菌药单选按钮，找到 {len(radio_buttons)} 个")
+                return False
+
+            # 找出"有"和"无"的按钮
+            radio_no = None  # value="0"
+            radio_yes = None  # value="1"
+
+            for radio in radio_buttons:
+                value = radio.get_attribute("value")
+                if value == "0":
+                    radio_no = radio
+                elif value == "1":
+                    radio_yes = radio
+
+            # 根据数据值选择按钮
+            if antibiotic_value == "有":
+                if radio_yes:
+                    logger.info("选择抗菌药: 有")
+                    # 使用JavaScript点击，避免遮挡问题
+                    self.driver.execute_script("arguments[0].click();", radio_yes)
+                    time.sleep(1)  # 等待按钮启用
+
+                    # 查找"录入详细信息"按钮
+                    detail_button = first_data_row.find_element(By.CSS_SELECTOR, "input.itemBtnDrugs.btnDrugs")
+
+                    # 检查按钮是否已启用
+                    is_disabled = detail_button.get_attribute("disabled")
+                    if is_disabled:
+                        logger.warning("录入详细信息按钮仍处于禁用状态")
+                        # 再等一会儿
+                        time.sleep(1)
+
+                    # 点击"录入详细信息"按钮
+                    logger.info("点击录入详细信息按钮")
+                    self.driver.execute_script("arguments[0].click();", detail_button)
+                    time.sleep(1)
+
+                    logger.info("抗菌药信息处理完成：已选择'有'并点击录入详细信息")
+                    return True
+                else:
+                    logger.error("未找到'有'的单选按钮")
+                    return False
+
+            elif antibiotic_value == "无":
+                if radio_no:
+                    logger.info("选择抗菌药: 无")
+                    # 默认已经选中"无"，但为了确保，还是点击一下
+                    self.driver.execute_script("arguments[0].click();", radio_no)
+                    time.sleep(0.5)
+                    logger.info("抗菌药信息处理完成：已选择'无'")
+                    return True
+                else:
+                    logger.warning("未找到'无'的单选按钮，使用默认值")
+                    return True
+
+            else:
+                logger.warning(f"未知的抗菌药值: {antibiotic_value}，跳过处理")
+                return True
+
+        except TimeoutException:
+            logger.error(f"超时：未找到结果表格 (ID: {self.antibiotic_config.get('result_table_id', 'outpatientTable')})")
+            return False
+        except NoSuchElementException as e:
+            logger.error(f"未找到元素: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"处理抗菌药信息失败: {e}")
+            return False
