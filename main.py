@@ -23,6 +23,7 @@ from data_reader import DataReader
 from form_filler import FormFiller
 from result_exporter import ResultExporter
 from login_handler import LoginHandler
+from gui import show_config_gui, show_confirmation_dialog
 
 
 def setup_logging(config: dict) -> None:
@@ -424,6 +425,28 @@ def main():
         config = load_config()
         setup_logging(config)
 
+        # 显示GUI收集用户输入
+        logger.info("显示配置界面...")
+        user_config = show_config_gui()
+
+        if user_config is None:
+            logger.info("用户取消操作，程序退出")
+            return
+
+        # 使用GUI配置覆盖config中的值
+        config['login']['username'] = user_config['username']
+        config['login']['password'] = user_config['password']
+        config['month_selection']['month'] = user_config['month']
+        config['function_button']['type'] = user_config['function_type']
+        config['browser']['headless'] = user_config['headless']
+
+        # 更新对应功能的数据文件路径
+        function_type = user_config['function_type']
+        config['functions'][function_type]['data']['input_file'] = user_config['input_file']
+
+        logger.info(f"用户配置: 功能类型={function_type}, 月份={user_config['month']}, 文件={user_config['input_file']}")
+        logger.info("=" * 60)
+
         # 初始化组件
         logger.info("初始化组件...")
 
@@ -567,13 +590,20 @@ def main():
         logger.info("准备开始填写数据")
         logger.info("=" * 60)
 
-        print("\n" + "=" * 60)
-        print("请在浏览器中确认以下信息：")
-        print("1. 请手动输入报表日期")
-        print("2. 请手动输入门诊总量")
-        print("3. 确认所有信息无误后，按回车键继续自动填写...")
-        print("=" * 60)
-        input("\n按回车键继续...")
+        # 显示GUI确认对话框
+        confirmation_message = """请在浏览器中确认以下信息：
+
+1. 请手动输入报表日期
+2. 请手动输入门诊总量
+3. 确认所有信息无误后，点击"我已完成，继续"按钮
+
+程序将继续自动填写表单数据。"""
+
+        confirmed = show_confirmation_dialog("开始前确认", confirmation_message)
+
+        if not confirmed:
+            logger.warning("用户未确认，程序终止")
+            return
 
         logger.info("用户确认完成，开始读取数据...")
 
@@ -635,18 +665,19 @@ def main():
         logger.info(f"成功率: {success_count / total_count * 100:.2f}%")
         logger.info("=" * 60)
 
-        # 等待用户确认上报
-        print("\n" + "=" * 60)
-        print("数据填写完成！")
-        print(f"总计：{total_count} 条")
-        print(f"成功：{success_count} 条")
-        print(f"失败：{fail_count} 条")
-        print("=" * 60)
-        print("\n请在浏览器中检查填写结果")
-        print("确认无误后，请手动点击上报按钮")
-        print("\n上报完成后，按回车键关闭程序...")
-        print("=" * 60)
-        input("\n按回车键关闭程序...")
+        # 显示GUI确认对话框，等待用户上报
+        final_message = f"""数据填写完成！
+
+总计：{total_count} 条
+成功：{success_count} 条
+失败：{fail_count} 条
+
+请在浏览器中检查填写结果，确认无误后：
+1. 手动点击"上报"按钮
+2. 等待上报完成
+3. 点击"我已完成，继续"按钮关闭程序"""
+
+        show_confirmation_dialog("上报确认", final_message)
 
         logger.info("用户确认上报完成，程序即将关闭")
 

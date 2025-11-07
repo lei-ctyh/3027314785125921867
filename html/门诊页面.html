@@ -1,0 +1,193 @@
+<fieldset class="test">
+    <legend><i class="iconfont icon-zhenduan-mian"></i> 门诊处方用药情况调查表（月报表）</legend>
+    <input name="mjz_id" id="mjz_id" value="" type="hidden">
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">所属科室<span class="em">*</span></label>
+        <select class="itemSelect" id="department" name="department" onfocus="warnNone()" onchange="department(this,this.value)">
+            <option value="null">请选择</option>
+            <option value="1">普外科</option>
+            <option value="2">骨科</option>
+            <option value="3">泌尿外科</option>
+            <option value="22">普通内科</option>
+            <option value="4">口腔科</option>
+            <option value="5">神经外科</option>
+            <option value="6">神经内科</option>
+            <option value="7">妇产科</option>
+            <option value="8">重症医学科（ICU）</option>
+            <option value="9">小儿内科</option>
+            <option value="10">小儿外科</option>
+            <option value="28">▲儿童医院科室</option>
+            <option value="11">MICU</option>
+            <option value="12">消化科</option>
+            <option value="13">烧伤整形科</option>
+            <option value="14">肿瘤科</option>
+            <option value="15">内分泌科</option>
+            <option value="16">皮肤科</option>
+            <option value="17">呼吸科</option>
+            <option value="18">心胸外科</option>
+            <option value="19">眼科</option>
+            <option value="20">血液科</option>
+            <option value="21">心内科</option>
+            <option value="23">肾内科</option>
+            <option value="24">中医科</option>
+            <option value="25">老年科</option>
+            <option value="26">耳鼻喉科</option>
+            <option value="27">监测中心</option>
+            <option value="79">感染性疾病科</option>
+            <option value="80">急诊科</option>
+            <option value="81">精神科</option>
+        </select>
+        <select class="itemSelect" id="department2" name="department2" onfocus="warnNone()" style="display:none">
+            <option value="null">请选择</option>
+            <option value="29">血液肿瘤中心</option>
+            <option value="30">神经内科</option>
+            <option value="31">新生儿中心</option>
+            <option value="32">新生儿外科</option>
+            <option value="33">新生儿内科</option>
+            <option value="34">感染内科</option>
+            <option value="35">风湿免疫科</option>
+            <option value="36">过敏反应科</option>
+            <option value="37">内分泌遗传代谢科</option>
+            <option value="38">肾病科</option>
+            <option value="39">呼吸科</option>
+            <option value="40">介入肺科</option>
+            <option value="41">消化科</option>
+            <option value="42">消化内镜中心</option>
+            <option value="43">心脏内科</option>
+            <option value="44">中医科</option>
+            <option value="45">重症医学科</option>
+            <option value="46">急诊科</option>
+            <option value="47">神经外科</option>
+            <option value="48">功能神经外科</option>
+            <option value="49">耳鼻咽喉头颈外科</option>
+            <option value="50">泌尿外科</option>
+            <option value="51">肿瘤外科</option>
+            <option value="52">心脏外科</option>
+            <option value="53">胸外科</option>
+            <option value="54">烧伤整形外科</option>
+            <option value="55">普外科</option>
+            <option value="56">骨科</option>
+            <option value="57">麻醉科</option>
+            <option value="58">皮肤科</option>
+            <option value="59">眼科</option>
+            <option value="60">口腔科</option>
+            <option value="61">保健中心</option>
+            <option value="62">康复科</option>
+            <option value="63">营养膳食科</option>
+            <option value="64">精神科</option>
+        </select>
+    </div>
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">年龄<span class="em">*</span></label>
+        <select class="itemSelect w50" id="ageSel" name="ageSel" onchange="ages('sel')">
+            <option value="1">岁</option>
+            <option value="2">月</option>
+            <option value="3">周</option>
+            <option value="4">天</option>
+        </select>
+        <input class="itemInput w50" type="text" value="" id="age" name="age" onfocus="ageF()" onblur="ages('input')">
+    </div>
+    <div class="itemDivList clearfix">
+        <label class="itemLabel mgl28">性别<span class="em">*</span></label>
+        <div class="radio">
+            <input type="radio" id="sexM" name="sex" value="0" onfocus="warnNone()">
+            <label for="sexM">男</label>
+        </div>
+        <div class="radio">
+            <input type="radio" id="sexW" name="sex" value="1" onfocus="warnNone()">
+            <label for="sexW">女</label>
+        </div>
+    </div>
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">处方金额<span class="em">*</span></label>
+        <input type="hidden" id="adrug_cost" value="">
+        <input class="itemInput w80" type="text" value="" id="outAmount" name="outAmount" onfocus="warnNone()" onblur="outAmount(this,this.value)">
+        <label class="itemLabel">元</label>
+    </div>
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">药品品种数<span class="em">*</span></label>
+        <input class="itemInput w80" type="text" value="" id="outDrugs" name="outDrugs" onfocus="warnNone()" onblur="outDrugs(this,this.value)">
+        <label class="itemLabel">种</label>
+    </div>
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">有无注射剂(液)<span class="em">*</span></label>
+        <div class="radio">
+            <input type="radio" id="infusionN" value="0" name="infusion" onclick="infusion(this.value)" checked="">
+            <label for="infusionN">无</label>
+        </div>
+        <div class="radio">
+            <input type="radio" id="infusionY" value="1" name="infusion" onclick="infusion(this.value)">
+            <label for="infusionY">有</label>
+        </div>
+        <div class="fl infusionDiv">
+            <input class="itemInput w50" type="text" value="" id="infusionNum" name="infusionNum" disabled="" onfocus="warnNone()" onblur="infusionNum(this,this.value)">
+            <!-- <input class="itemInput w50" type="text" value="种" id="infusionUnit" name="infusionUnit" disabled/> -->
+            <label class="itemLabel">种</label>
+            <!-- <select class="itemSelect w50" id="infusionUnit" name="infusionUnit" disabled>
+                                    </select> -->
+        </div>
+    </div>
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">使用基本药物目录品种数<span class="em">*</span></label>
+        <input class="itemInput w80" type="text" maxlength="2" value="暂不填写" id="" name="" disabled="">
+        <input class="itemInput w80" type="hidden" value="1" id="drugsNum" name="drugsNum">
+    </div>
+    <div class="clearboth"></div>
+    <input type="hidden" value="" id="diagnosisSelNum">
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">诊断1</label>
+        <!-- id="id名(diagnosisName)+id顺序(1)" onfocus="diagnosisF(当前值,id顺序)" onblur="diagnosisB('id名(去掉id顺序)',this,this.value,id顺序)" -->
+        <input name="diagnosisid1" id="diagnosisid1" value="" type="hidden">
+        <input class="itemInput medicineIpt w300 " type="text" value="" id="diagnosisName1" name="diagnosisName1" placeholder="诊断名称" onfocus="diagnosisF(this.value,1)" onblur="diagnosisB('diagnosisName',this,this.value,1)">
+        <!-- id="id名(diagnosisNums)+id顺序(1)" onblur="diagnosisB('id名(去掉id顺序)',this,this.value,id顺序)" -->
+        <input class="itemInput medicineIpt1 w80 " type="text" value="" id="diagnosisNums1" name="diagnosisNums1" placeholder="编码" onblur="diagnosisB('diagnosisNums',this,this.value,1)">
+        <!-- onfocus="diagnosisF('',id顺序)" 第一个值为空则表示点击按钮打开层-->
+        <a href="javascript:;" class="medicineB dictionaryHtml mgr0 " title="诊断字典" alt="诊断字典" onclick="diagnosisF('',1)"><i class="iconfont icon-zidian"></i></a>
+        <a href="javascript:;" class="medicineA closeHtml " title="清除" alt="清除" onclick="delIptCon(this)"><i class="iconfont icon-guanbi-"></i></a>
+    </div>
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">诊断2</label>
+        <input name="diagnosisid2" id="diagnosisid2" value="" type="hidden">
+        <input class="itemInput medicineIpt w300 " type="text" value="" id="diagnosisName2" name="diagnosisName2" placeholder="诊断名称" onfocus="diagnosisF(this.value,2)" onblur="diagnosisB('diagnosisName',this,this.value,2)">
+        <input class="itemInput medicineIpt1 w80 " type="text" value="" id="diagnosisNums2" name="diagnosisNums2" placeholder="编码" onblur="diagnosisB('diagnosisNums',this,this.value,2)">
+        <a href="javascript:;" class="medicineB dictionaryHtml mgr0 " title="诊断字典" alt="诊断字典" onclick="diagnosisF('',2)"><i class="iconfont icon-zidian"></i></a>
+        <a href="javascript:;" class="medicineA closeHtml " title="清除" alt="清除" onclick="delIptCon(this)"><i class="iconfont icon-guanbi-"></i></a>
+    </div>
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">诊断3</label>
+        <input name="diagnosisid3" id="diagnosisid3" value="" type="hidden">
+        <input class="itemInput medicineIpt w300 " type="text" value="" id="diagnosisName3" name="diagnosisName3" placeholder="诊断名称" onfocus="diagnosisF(this.value,3)" onblur="diagnosisB('diagnosisName',this,this.value,3)">
+        <input class="itemInput medicineIpt1 w80 " type="text" value="" id="diagnosisNums3" name="diagnosisNums3" placeholder="编码" onblur="diagnosisB('diagnosisNums',this,this.value,3)">
+        <a href="javascript:;" class="medicineB dictionaryHtml mgr0 " title="诊断字典" alt="诊断字典" onclick="diagnosisF('',3)"><i class="iconfont icon-zidian"></i></a>
+        <a href="javascript:;" class="medicineA closeHtml " title="清除" alt="清除" onclick="delIptCon(this)"><i class="iconfont icon-guanbi-"></i></a>
+    </div>
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">诊断4</label>
+        <input name="diagnosisid4" id="diagnosisid4" value="" type="hidden">
+        <input class="itemInput medicineIpt w300 " type="text" value="" id="diagnosisName4" name="diagnosisName4" placeholder="诊断名称" onfocus="diagnosisF(this.value,4)" onblur="diagnosisB('diagnosisName',this,this.value,4)">
+        <input class="itemInput medicineIpt1 w80 " type="text" value="" id="diagnosisNums4" name="diagnosisNums4" placeholder="编码" onblur="diagnosisB('diagnosisNums',this,this.value,4)">
+        <a href="javascript:;" class="medicineB dictionaryHtml mgr0 " title="诊断字典" alt="诊断字典" onclick="diagnosisF('',4)"><i class="iconfont icon-zidian"></i></a>
+        <a href="javascript:;" class="medicineA closeHtml " title="清除" alt="清除" onclick="delIptCon(this)"><i class="iconfont icon-guanbi-"></i></a>
+    </div>
+    <div class="itemDivList clearfix">
+        <label class="itemLabel">诊断5</label>
+        <input name="diagnosisid5" id="diagnosisid5" value="" type="hidden">
+        <input class="itemInput medicineIpt w300 " type="text" value="" id="diagnosisName5" name="diagnosisName5" placeholder="诊断名称" onfocus="diagnosisF(this.value,5)" onblur="diagnosisB('diagnosisName',this,this.value,5)">
+        <input class="itemInput medicineIpt1 w80 " type="text" value="" id="diagnosisNums5" name="diagnosisNums5" placeholder="编码" onblur="diagnosisB('diagnosisNums',this,this.value,5)">
+        <a href="javascript:;" class="medicineB dictionaryHtml mgr0 " title="诊断字典" alt="诊断字典" onclick="diagnosisF('',5)"><i class="iconfont icon-zidian"></i></a>
+        <a href="javascript:;" class="medicineA closeHtml" title="清除" alt="清除" onclick="delIptCon(this)"><i class="iconfont icon-guanbi-"></i></a>
+    </div>
+    <!--<div class="itemDivList clearfix">
+        <label class="itemLabel">诊断6</label>
+        <input name="diagnosisid6" id="diagnosisid6"  value='' type="hidden" />
+        <input class="itemInput medicineIpt w300" type="text" value="" id="diagnosisName6" name="diagnosisName6" placeholder="诊断名称" onfocus="diagnosisF(this.value,6)" onblur="diagnosisB('diagnosisName',this,this.value,6)"/>
+        <input class="itemInput medicineIpt1 w80" type="text" value="" id="diagnosisNums6" name="diagnosisNums6" placeholder="编码" onblur="diagnosisB('diagnosisNums',this,this.value,6)"/>
+        <a href="javascript:;" class="medicineB dictionaryHtml mgr0" title="诊断字典" alt="诊断字典" onclick="diagnosisF('',6)"><i class="iconfont icon-zidian"></i></a>
+        <a href="javascript:;" class="medicineA closeHtml" title="清除" alt="清除" onclick="delIptCon(this)"><i class="iconfont icon-guanbi-"></i></a>
+    </div>-->
+    <div class="clearboth"></div>
+    <div class="tc clearboth">
+        <input type="button" class="itemBtnSave" value="保存门诊处方用药情况调查表" onclick="saveOutpatient('门诊')">
+        <input type="button" class="itemBtnSave" value="重置" onclick="resetOutpatient('mz')">
+    </div>
+</fieldset>

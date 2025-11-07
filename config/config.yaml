@@ -31,7 +31,7 @@ login:
     button:
       locator: "xpath"  # 确认按钮的定位方式
       value: "//button[@onclick='closeShade(this)']"  # 确认按钮定位器
-    wait_time: 4  # 等待提示出现的时间（秒）
+    wait_time: 2  # 等待提示出现的时间（秒）
 
 # 月份选择配置
 month_selection:
