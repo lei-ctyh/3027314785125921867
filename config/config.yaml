@@ -251,17 +251,168 @@ functions:
 
     # 急诊表单元素定位器配置
     form_elements:
-      # 示例：文本输入框（根据实际急诊表单修改）
-      patient_name:
+      # 所属科室选择
+      科室:
+        type: "select"
+        locator: "id"
+        value: "department"
+        description: "普通科室选择框"
+
+      科室2:
+        type: "select"
+        locator: "id"
+        value: "department2"
+        description: "儿童医院科室选择框（当选择▲儿童医院科室时显示）"
+
+      # 年龄单位选择（岁/月/周/天）
+      年龄单位:
+        type: "select"
+        locator: "id"
+        value: "ageSel"
+        options:
+          岁: "1"
+          月: "2"
+          周: "3"
+          天: "4"
+
+      # 年龄数值输入
+      年龄:
         type: "input"
         locator: "id"
-        value: "patient_name"
+        value: "age"
 
-      # 示例：提交按钮
+      # 性别单选（男/女）
+      性别:
+        type: "radio"
+        locator: "name"
+        value: "sex"
+        options:
+          男: "0"
+          女: "1"
+
+      # 处方金额
+      处方金额:
+        type: "input"
+        locator: "id"
+        value: "outAmount"
+        description: "单位：元"
+
+      # 药品品种数
+      药品品种数:
+        type: "input"
+        locator: "id"
+        value: "outDrugs"
+        description: "单位：种"
+
+      # 有无注射剂（液）
+      注射剂:
+        type: "radio"
+        locator: "name"
+        value: "infusion"
+        options:
+          无: "0"
+          有: "1"
+
+      # 注射剂数量（当选择"有"时填写）
+      注射剂数量:
+        type: "input"
+        locator: "id"
+        value: "infusionNum"
+        description: "单位：种，仅当有无注射剂选择'有'时启用"
+
+      # 诊断1
+      诊断1_ID:
+        type: "hidden"
+        locator: "id"
+        value: "diagnosisid1"
+      诊断1_名称:
+        type: "input"
+        locator: "id"
+        value: "diagnosisName1"
+        placeholder: "诊断名称"
+      诊断1_编码:
+        type: "input"
+        locator: "id"
+        value: "diagnosisNums1"
+        placeholder: "编码"
+
+      # 诊断2
+      诊断2_ID:
+        type: "hidden"
+        locator: "id"
+        value: "diagnosisid2"
+      诊断2_名称:
+        type: "input"
+        locator: "id"
+        value: "diagnosisName2"
+        placeholder: "诊断名称"
+      诊断2_编码:
+        type: "input"
+        locator: "id"
+        value: "diagnosisNums2"
+        placeholder: "编码"
+
+      # 诊断3
+      诊断3_ID:
+        type: "hidden"
+        locator: "id"
+        value: "diagnosisid3"
+      诊断3_名称:
+        type: "input"
+        locator: "id"
+        value: "diagnosisName3"
+        placeholder: "诊断名称"
+      诊断3_编码:
+        type: "input"
+        locator: "id"
+        value: "diagnosisNums3"
+        placeholder: "编码"
+
+      # 诊断4
+      诊断4_ID:
+        type: "hidden"
+        locator: "id"
+        value: "diagnosisid4"
+      诊断4_名称:
+        type: "input"
+        locator: "id"
+        value: "diagnosisName4"
+        placeholder: "诊断名称"
+      诊断4_编码:
+        type: "input"
+        locator: "id"
+        value: "diagnosisNums4"
+        placeholder: "编码"
+
+      # 诊断5
+      诊断5_ID:
+        type: "hidden"
+        locator: "id"
+        value: "diagnosisid5"
+      诊断5_名称:
+        type: "input"
+        locator: "id"
+        value: "diagnosisName5"
+        placeholder: "诊断名称"
+      诊断5_编码:
+        type: "input"
+        locator: "id"
+        value: "diagnosisNums5"
+        placeholder: "编码"
+
+      # 保存按钮
       submit_button:
         type: "button"
-        locator: "css_selector"
-        value: "button[type='submit']"
+        locator: "xpath"
+        value: "//input[@onclick=\"saveOutpatient('急诊')\"]"
+        description: "保存门诊处方用药情况调查表"
+
+      # 重置按钮
+      reset_button:
+        type: "button"
+        locator: "xpath"
+        value: "//input[@onclick=\"resetOutpatient('jz')\"]"
+        description: "重置表单"
 
 # 浏览器配置
 browser:
