@@ -82,6 +82,11 @@ functions:
       result_table_id: "outpatientTable"  # 结果表格的ID
       wait_after_submit: 2  # 表单提交后等待表格刷新的时间（秒）
 
+    # 抗菌药详细信息录入配置
+    antibiotic_detail:
+      enabled: true  # 是否启用抗菌药详情自动填写
+      wait_after_click: 2  # 点击"录入详细信息"后等待页面加载时间（秒）
+
     # 门诊表单元素定位器配置
     form_elements:
       # 所属科室选择
@@ -260,6 +265,11 @@ functions:
       enabled: true  # 是否启用抗菌药信息处理
       result_table_id: "outpatientTable"  # 结果表格的ID（急诊与门诊使用同一个表格）
       wait_after_submit: 2  # 表单提交后等待表格刷新的时间（秒）
+
+    # 抗菌药详细信息录入配置
+    antibiotic_detail:
+      enabled: true  # 是否启用抗菌药详情自动填写
+      wait_after_click: 2  # 点击"录入详细信息"后等待页面加载时间（秒）
 
     # 急诊表单元素定位器配置
     form_elements:

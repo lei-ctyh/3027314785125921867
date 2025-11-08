@@ -4,8 +4,9 @@
 
 import logging
 import time
+import re
 import requests
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
@@ -518,9 +519,16 @@ class FormFiller:
                     # 点击"录入详细信息"按钮
                     logger.info("点击录入详细信息按钮")
                     self.driver.execute_script("arguments[0].click();", detail_button)
-                    time.sleep(1)
 
-                    logger.info("抗菌药信息处理完成：已选择'有'并点击录入详细信息")
+                    # 调用详情填写方法
+                    logger.info("准备填写抗菌药详细信息...")
+                    detail_success = self.fill_antibiotic_detail(row_data)
+
+                    if not detail_success:
+                        logger.warning("抗菌药详细信息填写失败")
+                        return False
+
+                    logger.info("抗菌药信息处理完成：已选择'有'并完成详细信息录入")
                     return True
                 else:
                     logger.error("未找到'有'的单选按钮")
@@ -550,4 +558,427 @@ class FormFiller:
             return False
         except Exception as e:
             logger.error(f"处理抗菌药信息失败: {e}")
+            return False
+
+    def _search_drug(self, keyword: str) -> Optional[Dict[str, str]]:
+        """
+        查询药品通用名和编码
+
+        Args:
+            keyword: 药品关键词
+
+        Returns:
+            包含药品名称、编码和规格的字典，格式: {'name': '药品名称', 'code': '编码', 'spec': '规格'}
+            如果未找到则返回 None
+        """
+        try:
+            # 从浏览器获取Cookie
+            cookies = self.driver.get_cookies()
+            cookie_dict = {cookie['name']: cookie['value'] for cookie in cookies}
+
+            # 构造请求
+            url = "http://y.chinadtc.org.cn/entering/dict/search_dict"
+            headers = {
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+                'Cookie': 'PHPSESSID=' + cookie_dict['PHPSESSID']
+            }
+
+            # 构造表单数据（multipart/form-data格式）
+            data = {
+                'dict_table': 'dict_drug',
+                'search_field': 'drug_pym',
+                'order_field': 'drug_id',
+                'szimu': keyword
+            }
+
+            # 将data转换成multipart形式
+            files = []
+            for key, value in data.items():
+                files.append((key, (None, value)))
+
+            # 发送请求，不设置Content-Type，让requests自动设置（包含boundary）
+            response = self.session.post(url, files=files, headers=headers, timeout=10)
+            response.raise_for_status()
+
+            # 解析响应
+            results = response.json()
+
+            if not results or len(results) == 0:
+                logger.warning(f"未找到药品: {keyword}")
+                return None
+
+            # 选择最相似的结果（这里简单取第一个）
+            best_match = results[0]
+
+            # 构造规格字符串
+            spec = best_match.get('drug_spec_c', '')
+            spec_unit2 = best_match.get('drug_spec_unit2', '')
+            drug_form = best_match.get('drug_form_c', '')
+
+            # 组合规格，例如: "0.25g 胶囊"
+            full_spec = f"{spec}{spec_unit2}" if spec else ""
+            if drug_form:
+                full_spec = f"{full_spec} {drug_form}" if full_spec else drug_form
+
+            drug_info = {
+                'name': best_match['drug_name'],
+                'code': best_match['drug_code'],
+                'spec': full_spec,
+                'id': str(best_match['drug_id'])
+            }
+
+            logger.info(f"找到药品: {keyword} -> {drug_info['name']} ({drug_info['code']}) 规格: {drug_info['spec']}")
+            return drug_info
+
+        except requests.RequestException as e:
+            logger.error(f"查询药品API失败: {e}")
+            return None
+        except (KeyError, IndexError, ValueError) as e:
+            logger.error(f"解析药品结果失败: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"查询药品失败: {e}")
+            return None
+
+    def _parse_dosage(self, dosage_str: str) -> Dict[str, Any]:
+        """
+        解析用法用量字符串
+
+        Args:
+            dosage_str: 用法用量字符串，如 "100mg bid", "0.25g tid", "125mg q8h"
+
+        Returns:
+            包含单次剂量、单次剂量单位、用法频率的字典
+            格式: {'dose_value': '100', 'dose_unit': 'mg', 'frequency': 'bid'}
+        """
+        try:
+            logger.debug(f"解析用法用量: {dosage_str}")
+
+            # 初始化默认值
+            result = {
+                'dose_value': '',
+                'dose_unit': '',
+                'frequency': '',
+                'total_amount': '',  # 总量（从数量列获取）
+                'total_unit': ''     # 总量单位
+            }
+
+            if not dosage_str or str(dosage_str).strip() == '':
+                logger.warning("用法用量字符串为空")
+                return result
+
+            dosage_str = str(dosage_str).strip()
+
+            # 正则表达式匹配剂量和单位，例如: "100mg", "0.25g", "1片"
+            dose_pattern = r'(\d+\.?\d*)\s*(mg|g|克|毫克|片|粒|支|包|袋|瓶|ml|毫升|滴|万单位)'
+            dose_match = re.search(dose_pattern, dosage_str, re.IGNORECASE)
+
+            if dose_match:
+                result['dose_value'] = dose_match.group(1)
+                result['dose_unit'] = dose_match.group(2).lower()
+                logger.debug(f"提取到剂量: {result['dose_value']} {result['dose_unit']}")
+
+            # 正则表达式匹配用法频率
+            # 支持: qd, bid, tid, qid, q2h, q4h, q6h, q8h, q12h, qn (每晚)
+            frequency_pattern = r'\b(qd|bid|tid|qid|q2h|q4h|q6h|q8h|q12h|qn|st|即刻|1日|2日|3日|4日|每晚)\b'
+            freq_match = re.search(frequency_pattern, dosage_str, re.IGNORECASE)
+
+            if freq_match:
+                result['frequency'] = freq_match.group(1).lower()
+                logger.debug(f"提取到频率: {result['frequency']}")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"解析用法用量失败: {e}")
+            return {
+                'dose_value': '',
+                'dose_unit': '',
+                'frequency': '',
+                'total_amount': '',
+                'total_unit': ''
+            }
+
+    def _normalize_unit(self, unit_str: str, unit_type: str = 'dose') -> str:
+        """
+        标准化单位值到HTML select的option value
+
+        Args:
+            unit_str: 单位字符串 (如 "mg", "g", "片", "口服")
+            unit_type: 单位类型 ('dose' 剂量单位, 'route' 给药途径)
+
+        Returns:
+            HTML select对应的value值 (字符串)
+        """
+        unit_str = str(unit_str).strip().lower()
+
+        if unit_type == 'dose':
+            # 剂量单位映射表
+            unit_map = {
+                '克': '5', 'g': '5',
+                '毫克': '6', 'mg': '6',
+                '万单位': '7',
+                '滴': '8',
+                'ml': '9', '毫升': '9',
+                '片': '10',
+                '支': '11',
+                '粒': '12',
+                '瓶': '13',
+                '包': '14',
+                '袋': '15'
+            }
+            return unit_map.get(unit_str, '10')  # 默认"片"
+
+        elif unit_type == 'route':
+            # 给药途径映射表
+            route_map = {
+                '静脉滴注': '26', '静滴': '26',
+                '静脉泵入': '27',
+                '静脉推注': '28', '静推': '28',
+                '肌肉注射': '29', '肌注': '29',
+                '静脉注射': '30', '静注': '30',
+                '皮下注射': '31', '皮下': '31',
+                '球后注射': '87',
+                '结膜下注射': '88',
+                '眼内注射': '89',
+                '直肠给药': '32', '直肠': '32',
+                '雾化吸入': '33', '雾化': '33',
+                '肠道准备': '34',
+                '口服': '35',
+                '外用': '36',
+                '滴鼻': '37',
+                '滴耳': '38',
+                '滴眼': '39',
+                '鞘内注射': '90',
+                '腹膜透析': '91',
+                '皮试': '92'
+            }
+            return route_map.get(unit_str, '35')  # 默认"口服"
+
+        elif unit_type == 'frequency':
+            # 用法频率映射表
+            freq_map = {
+                '即刻': '16', 'st': '16',
+                '1/日': '17', 'qd': '17', '1日': '17',
+                '2/日': '18', 'bid': '18', '2日': '18',
+                '3/日': '19', 'tid': '19', '3日': '19',
+                '4/日': '20', 'qid': '20', '4日': '20',
+                'q2h': '93',
+                'q6h': '21',
+                'q8h': '22',
+                'q12h': '23',
+                '每晚': '24', 'qn': '24',
+                '其他': '25'
+            }
+            return freq_map.get(unit_str, '17')  # 默认"1/日"
+
+        return ''
+
+    def fill_antibiotic_detail(self, row_data: Dict[str, Any]) -> bool:
+        """
+        填写抗菌药详细信息表单
+
+        Args:
+            row_data: 当前行的数据字典（包含抗菌药相关字段）
+
+        Returns:
+            True 如果填写成功，False 否则
+        """
+        try:
+            logger.info("开始填写抗菌药详细信息...")
+
+            # 等待抗菌药详情页面加载
+            wait_time = self.antibiotic_config.get('antibiotic_detail', {}).get('wait_after_click', 2)
+            logger.info(f"等待页面加载（{wait_time}秒）...")
+            time.sleep(wait_time)
+
+            # 检查页面是否加载完成（检测特征元素）
+            try:
+                self.wait.until(
+                    EC.presence_of_element_located((By.ID, "drug_idName"))
+                )
+                logger.debug("抗菌药详情页面已加载")
+            except TimeoutException:
+                logger.error("抗菌药详情页面加载超时")
+                return False
+
+            # 提取Excel中的相关字段数据
+            drug_name_raw = None
+            drug_spec = None
+            drug_amount = None
+            drug_dosage = None
+            drug_route = None
+            drug_quantity = None
+
+            # 遍历row_data查找相关字段（处理列名可能的换行符和空格）
+            for key, value in row_data.items():
+                key_clean = key.replace('\n', '').strip()
+                if '药品名称' in key_clean or '药品' in key_clean:
+                    drug_name_raw = str(value).strip() if value else None
+                elif '规格' in key_clean:
+                    drug_spec = str(value).strip() if value else None
+                elif '金额' in key_clean and '元' in key_clean and '处方' not in key_clean:
+                    drug_amount = str(value).strip() if value else None
+                elif '用法用量' in key_clean or '用法' in key_clean:
+                    drug_dosage = str(value).strip() if value else None
+                elif '途径' in key_clean:
+                    drug_route = str(value).strip() if value else None
+                elif '数量' in key_clean:
+                    drug_quantity = str(value).strip() if value else None
+
+            logger.info(f"提取到的数据 - 药品:{drug_name_raw}, 规格:{drug_spec}, 金额:{drug_amount}, 用法用量:{drug_dosage}, 途径:{drug_route}, 数量:{drug_quantity}")
+
+            # 1. 查询药品通用名
+            drug_info = None
+            if drug_name_raw:
+                drug_info = self._search_drug(drug_name_raw)
+                if drug_info:
+                    # 填写药品通用名和规格
+                    logger.info(f"填写药品通用名: {drug_info['name']}")
+                    # 使用JavaScript直接设置值（readonly字段）
+                    medicine_name_input = self.driver.find_element(By.ID, "medicineName")
+                    self.driver.execute_script("arguments[0].value = arguments[1];", medicine_name_input, drug_info['name'])
+
+                    # 填写药品ID（隐藏字段）
+                    drug_id_input = self.driver.find_element(By.ID, "drug_idName")
+                    self.driver.execute_script("arguments[0].value = arguments[1];", drug_id_input, drug_info['id'])
+
+                    # 填写规格
+                    spec_name_input = self.driver.find_element(By.ID, "specName")
+                    spec_value = drug_info.get('spec', drug_spec or '')
+                    self.driver.execute_script("arguments[0].value = arguments[1];", spec_name_input, spec_value)
+                    logger.info(f"填写规格: {spec_value}")
+                else:
+                    logger.warning(f"未查询到药品通用名，使用原始名称: {drug_name_raw}")
+                    medicine_name_input = self.driver.find_element(By.ID, "medicineName")
+                    self.driver.execute_script("arguments[0].value = arguments[1];", medicine_name_input, drug_name_raw)
+                    if drug_spec:
+                        spec_name_input = self.driver.find_element(By.ID, "specName")
+                        self.driver.execute_script("arguments[0].value = arguments[1];", spec_name_input, drug_spec)
+
+            # 2. 填写金额
+            if drug_amount:
+                logger.info(f"填写金额: {drug_amount}")
+                amount_input = self.driver.find_element(By.ID, "amountOutpatient")
+                amount_input.clear()
+                amount_input.send_keys(str(drug_amount))
+
+            # 3. 解析用法用量
+            dosage_info = {}
+            if drug_dosage:
+                dosage_info = self._parse_dosage(drug_dosage)
+                logger.info(f"解析用法用量结果: {dosage_info}")
+
+            # 4. 解析数量（总用量）
+            # 数量格式如 "3.00个", "4.00盒"
+            total_amount = ''
+            total_unit = ''
+            if drug_quantity:
+                # 提取数字和单位
+                qty_match = re.match(r'(\d+\.?\d*)\s*(个|盒|瓶|支|片|粒|包|袋|克|g|mg|毫克)?', str(drug_quantity))
+                if qty_match:
+                    total_amount = qty_match.group(1)
+                    if qty_match.group(2):
+                        total_unit = qty_match.group(2)
+
+            # 如果没有从数量提取到，使用用法用量中的剂量
+            if not total_amount and dosage_info.get('dose_value'):
+                total_amount = dosage_info['dose_value']
+                total_unit = dosage_info.get('dose_unit', '')
+
+            # 5. 填写总用量
+            if total_amount:
+                logger.info(f"填写总用量: {total_amount}")
+                total_medicine_input = self.driver.find_element(By.ID, "totalMedicine")
+                total_medicine_input.clear()
+                total_medicine_input.send_keys(str(total_amount))
+
+            # 6. 选择总用量单位
+            if total_unit:
+                unit_value = self._normalize_unit(total_unit, 'dose')
+                logger.info(f"选择总用量单位: {total_unit} -> value={unit_value}")
+                total_unit_select = Select(self.driver.find_element(By.ID, "totalMedicineUnit"))
+                total_unit_select.select_by_value(unit_value)
+
+            # 7. 填写单次计量
+            if dosage_info.get('dose_value'):
+                logger.info(f"填写单次计量: {dosage_info['dose_value']}")
+                once_meter_input = self.driver.find_element(By.ID, "onceMeter")
+                once_meter_input.clear()
+                once_meter_input.send_keys(str(dosage_info['dose_value']))
+
+            # 8. 选择单次计量单位
+            if dosage_info.get('dose_unit'):
+                unit_value = self._normalize_unit(dosage_info['dose_unit'], 'dose')
+                logger.info(f"选择单次计量单位: {dosage_info['dose_unit']} -> value={unit_value}")
+                once_unit_select = Select(self.driver.find_element(By.ID, "onceMeterUnit"))
+                once_unit_select.select_by_value(unit_value)
+
+            # 9. 选择用法（频率）
+            if dosage_info.get('frequency'):
+                freq_value = self._normalize_unit(dosage_info['frequency'], 'frequency')
+                logger.info(f"选择用法频率: {dosage_info['frequency']} -> value={freq_value}")
+                freq_select = Select(self.driver.find_element(By.ID, "medicineFrequency"))
+                freq_select.select_by_value(freq_value)
+
+            # 10. 选择途径
+            if drug_route:
+                route_value = self._normalize_unit(drug_route, 'route')
+                logger.info(f"选择途径: {drug_route} -> value={route_value}")
+                route_select = Select(self.driver.find_element(By.ID, "medicineWay"))
+                route_select.select_by_value(route_value)
+
+            time.sleep(0.5)  # 短暂等待表单填写完成
+
+            # 11. 点击保存按钮
+            logger.info("点击保存按钮...")
+            save_button = self.driver.find_element(By.XPATH, "//input[@value='保存抗菌药详细信息录入']")
+            self.driver.execute_script("arguments[0].click();", save_button)
+            time.sleep(1)  # 等待保存处理
+
+            # 12. 处理alert弹窗
+            try:
+                logger.info("等待 Alert 弹窗...")
+                alert = self.driver.switch_to.alert
+                alert_text = alert.text
+                logger.info(f"检测到 Alert 弹窗: {alert_text}")
+                alert.accept()  # 点击确认
+                logger.info("已点击 Alert 确认按钮")
+                time.sleep(0.5)  # 等待 alert 关闭
+            except Exception as alert_error:
+                logger.debug(f"未检测到 Alert 弹窗或处理失败: {alert_error}")
+
+            # 13. 点击返回按钮
+            logger.info("查找返回按钮...")
+            try:
+                # 尝试多种定位方式
+                return_button = None
+                try:
+                    return_button = self.driver.find_element(By.XPATH, "//input[@value='返回门诊处方用药情况调查表']")
+                except:
+                    try:
+                        return_button = self.driver.find_element(By.XPATH, "//input[@onclick=\"fanhui('1')\"]")
+                    except:
+                        logger.warning("未找到返回按钮，可能已自动返回")
+
+                if return_button:
+                    logger.info("点击返回按钮...")
+                    self.driver.execute_script("arguments[0].click();", return_button)
+                    time.sleep(1)  # 等待返回主列表
+                    logger.info("已返回主列表")
+
+            except Exception as return_error:
+                logger.warning(f"点击返回按钮失败: {return_error}")
+
+            logger.info("抗菌药详细信息填写完成")
+            return True
+
+        except NoSuchElementException as e:
+            logger.error(f"未找到元素: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"填写抗菌药详细信息失败: {e}")
             return False

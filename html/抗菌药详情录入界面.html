@@ -1,0 +1,119 @@
+<div class="itemDiv" style="width: 100%;">
+    <fieldset class="test">
+        <legend><i class="iconfont icon-zhenduan-mian"></i> 门诊处方用药情况 - 抗菌药详细信息录入</legend>
+        <input name="mjz_id" id="mjz_id" value="650163" type="hidden">
+        <input name="det_id" id="det_id" value="" type="hidden">
+        <input name="mjz_cost" id="mjz_cost" value="197.18" type="hidden">
+        <input name="mjz_adrug_cost" id="mjz_adrug_cost" value="0" type="hidden">
+        <div class="itemDivList clearfix">
+            <input type="hidden" value="" id="medicineSelNum">
+            <label class="itemLabel">药品通用名<span class="em">*</span></label>
+            <input name="drug_id" id="drug_idName" value="" type="hidden">
+            <input class="itemInput w300" type="text" value="" name="medicineName" id="medicineName" onfocus="drugF('Name')" readonly="">
+            <input class="itemInput w80" type="text" value="" id="specName" name="specName" placeholder="规格" readonly="">
+        </div>
+        <div class="itemDivList clearfix">
+            <label class="itemLabel">金额<span class="em">*</span></label>
+            <input class="itemInput w80" type="text" value="" id="amountOutpatient" name="amountOutpatient" onfocus="warnNone()" onblur="amountOutpatient(this,this.value)">
+            <input class="m-wrap span12" id="money-old" value="" type="hidden">
+            <label class="itemLabel">元</label>
+            <label class="itemLabel gray">(总金额为197.18元)</label>
+        </div>
+        <div class="clearboth"></div>
+        <div class="itemDivList clearfix">
+            <label class="itemLabel">总用量<span class="em">*</span></label>
+            <input class="itemInput" type="text" value="" id="totalMedicine" name="totalMedicine" onfocus="totalMedicineF()" onblur="totalMedicineB(this,this.value)">
+            <select class="itemSelect w80" id="totalMedicineUnit" name="totalMedicineUnit" onchange="unitSel(this.value,'totalMedicineUnit')">
+                <option value="5">克</option>
+                <option value="6">毫克</option>
+                <option value="7">万单位</option>
+                <option value="8">滴</option>
+                <option value="9">ml</option>
+                <option value="10" selected="">片</option>
+                <option value="11">支</option>
+                <option value="12">粒</option>
+                <option value="13">瓶</option>
+                <option value="14">包</option>
+                <option value="15">袋</option>
+            </select>
+        </div>
+        <div class="itemDivList clearfix">
+            <label class="itemLabel">单次计量<span class="em">*</span></label>
+            <input class="itemInput w80" type="text" value="" id="onceMeter" name="onceMeter" onfocus="onceMeterF()" onblur="onceMeterB(this,this.value)">
+            <select class="itemSelect w80" id="onceMeterUnit" name="onceMeterUnit">
+                <option value="5">克</option>
+                <option value="6">毫克</option>
+                <option value="7">万单位</option>
+                <option value="8">滴</option>
+                <option value="9">ml</option>
+                <option value="10">片</option>
+                <option value="11">支</option>
+                <option value="12">粒</option>
+                <option value="13">瓶</option>
+                <option value="14">包</option>
+                <option value="15">袋</option>
+            </select>
+        </div>
+        <div class="clearboth"></div>
+        <div class="itemDivList clearfix">
+            <label class="itemLabel">用法<span class="em">*</span></label>
+            <select class="itemSelect w80" id="medicineFrequency" name="medicineFrequency" onchange="medicineFrequency(this.value)">
+                <option value="16">即刻</option>
+                <option value="17">1/日</option>
+                <option value="18">2/日</option>
+                <option value="19">3/日</option>
+                <option value="20">4/日</option>
+                <option value="93">q2h</option>
+                <option value="21">q6h</option>
+                <option value="22">q8h</option>
+                <option value="23">q12h</option>
+                <option value="24">每晚</option>
+                <option value="25">其他</option>
+                <option value="94">q2h</option>
+            </select>
+            <input class="itemInput w50 hide" type="text" value="" id="medicineFrequencyVal" name="medicineFrequencyVal">
+        </div>
+        <div class="itemDivList clearfix">
+            <label class="itemLabel">途径<span class="em">*</span></label>
+            <select class="itemSelect w80" id="medicineWay" name="medicineWay">
+                <option value="26">静脉滴注</option>
+                <option value="27">静脉泵入</option>
+                <option value="28">静脉推注</option>
+                <option value="29">肌肉注射</option>
+                <option value="30">静脉注射</option>
+                <option value="31">皮下注射</option>
+                <option value="87">球后注射</option>
+                <option value="88">结膜下注射</option>
+                <option value="89">眼内注射</option>
+                <option value="32">直肠给药</option>
+                <option value="33">雾化吸入</option>
+                <option value="34">肠道准备</option>
+                <option value="35" selected="">口服</option>
+                <option value="36">外用</option>
+                <option value="37">滴鼻</option>
+                <option value="38">滴耳</option>
+                <option value="39">滴眼</option>
+                <option value="90">鞘内注射</option>
+                <option value="91">腹膜透析</option>
+                <option value="92">皮试</option>
+            </select>
+        </div>
+        <!-- <div class="itemDivList clearfix">
+<label class="itemLabel">溶媒<span class="em">*</span></label>
+<select class="itemSelect" id="solventSel" name="solventSel" onchange="solventSel(this,this.value)" >
+                            <option value="31">无</option>
+                    </select>
+<select class="itemSelect w80" id="solventUnit1" name="solventUnit1" disabled="disabled" onchange="solventUnit1(this,this.value)">
+<option value="null">请选择</option>
+                    </select>
+<input class="itemInput w80" type="text" value="" id="solventVal" name="solventVal" disabled onblur="solventVal(this,this.value)"/>
+<select class="itemSelect w80" id="solventUnit2" name="solventUnit2" disabled >
+                    </select>
+</div> -->
+        <div class="clearboth"></div>
+        <div class="tc clearboth">
+            <input type="button" class="itemBtnSave" value="保存抗菌药详细信息录入" onclick="saveOutpatientDetail('mz')">
+            <input type="button" class="itemBtnSave" value="重置" onclick="resetOutpatientDetail('mz')">
+        </div>
+    </fieldset>
+</div>
