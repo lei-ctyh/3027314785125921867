@@ -528,6 +528,7 @@ class FormFiller:
                         logger.warning("抗菌药详细信息填写失败")
                         return False
 
+
                     logger.info("抗菌药信息处理完成：已选择'有'并完成详细信息录入")
                     return True
                 else:
@@ -834,7 +835,10 @@ class FormFiller:
             # 1. 查询药品通用名
             drug_info = None
             if drug_name_raw:
-                drug_info = self._search_drug(drug_name_raw)
+                cleaned_name = re.sub(r'\([^)]*\)', '', drug_name_raw)
+                # 去除可能多余的空格
+                cleaned_name = re.sub(r'\s+', ' ', cleaned_name).strip()
+                drug_info = self._search_drug(cleaned_name)
                 if drug_info:
                     # 填写药品通用名和规格
                     logger.info(f"填写药品通用名: {drug_info['name']}")
@@ -852,12 +856,31 @@ class FormFiller:
                     self.driver.execute_script("arguments[0].value = arguments[1];", spec_name_input, spec_value)
                     logger.info(f"填写规格: {spec_value}")
                 else:
-                    logger.warning(f"未查询到药品通用名，使用原始名称: {drug_name_raw}")
-                    medicine_name_input = self.driver.find_element(By.ID, "medicineName")
-                    self.driver.execute_script("arguments[0].value = arguments[1];", medicine_name_input, drug_name_raw)
-                    if drug_spec:
-                        spec_name_input = self.driver.find_element(By.ID, "specName")
-                        self.driver.execute_script("arguments[0].value = arguments[1];", spec_name_input, drug_spec)
+                    # 13. 点击返回按钮
+                    logger.info("查找返回按钮...")
+                    try:
+                        # 尝试多种定位方式
+                        return_button = None
+                        try:
+                            return_button = self.driver.find_element(By.XPATH, "//input[@value='返回门诊处方用药情况调查表']")
+                        except:
+                            try:
+                                return_button = self.driver.find_element(By.XPATH, "//input[@value='返回门诊处方用药情况调查表']")
+                            except:
+                                try:
+                                    return_button = self.driver.find_element(By.XPATH, "//input[@onclick=\"fanhui('1')\"]")
+                                except:
+                                    logger.warning("未找到返回按钮，可能已自动返回")
+
+                        if return_button:
+                            logger.info("点击返回按钮...")
+                            self.driver.execute_script("arguments[0].click();", return_button)
+                            time.sleep(1)  # 等待返回主列表
+                            logger.info("已返回主列表")
+
+                    except Exception as return_error:
+                        logger.warning(f"点击返回按钮失败: {return_error}")
+                    raise Exception("药品信息无法查询")
 
             # 2. 填写金额
             if drug_amount:
@@ -960,9 +983,12 @@ class FormFiller:
                     return_button = self.driver.find_element(By.XPATH, "//input[@value='返回门诊处方用药情况调查表']")
                 except:
                     try:
-                        return_button = self.driver.find_element(By.XPATH, "//input[@onclick=\"fanhui('1')\"]")
+                        return_button = self.driver.find_element(By.XPATH, "//input[@value='返回门诊处方用药情况调查表']")
                     except:
-                        logger.warning("未找到返回按钮，可能已自动返回")
+                        try:
+                            return_button = self.driver.find_element(By.XPATH, "//input[@onclick=\"fanhui('1')\"]")
+                        except:
+                            logger.warning("未找到返回按钮，可能已自动返回")
 
                 if return_button:
                     logger.info("点击返回按钮...")
@@ -972,7 +998,6 @@ class FormFiller:
 
             except Exception as return_error:
                 logger.warning(f"点击返回按钮失败: {return_error}")
-
             logger.info("抗菌药详细信息填写完成")
             return True
 
@@ -982,3 +1007,4 @@ class FormFiller:
         except Exception as e:
             logger.error(f"填写抗菌药详细信息失败: {e}")
             return False
+

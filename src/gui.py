@@ -17,7 +17,7 @@ class ConfigGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("自动化表单填写系统 - 配置")
-        self.root.geometry("650x800")
+        self.root.geometry("550x800")
         self.root.resizable(True, True)  # 允许调整大小
 
         # 存储用户输入的配置
