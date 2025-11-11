@@ -778,6 +778,87 @@ class FormFiller:
 
         return ''
 
+    def _compute_total_from_spec_and_quantity(self, spec_str: Optional[str], quantity_str: Optional[str]) -> Tuple[str, str]:
+        """
+        根据规格和数量计算总用量。
+
+        规则：总用量 = 规格中每单位含量 × 包装内单位数量 × 购买数量
+        - 示例：规格 "50mg*12"，数量 "2.00 盒" => 总用量 = 50 × 12 × 2 = 1200 mg
+        - 单位与规格一致；当为"g"则在页面选择"克"，"mg"选择"毫克"。
+
+        Args:
+            spec_str: 规格字符串，例如 "50mg*12"、"0.25g×12片"、"125mg 12片"
+            quantity_str: 数量字符串，例如 "2.00 盒"、"3.00 片"
+
+        Returns:
+            (total_amount_str, total_unit_str) 若无法解析则返回 ('', '')
+        """
+        try:
+            if not spec_str or not str(spec_str).strip() or not quantity_str or not str(quantity_str).strip():
+                return '', ''
+
+            spec = str(spec_str).strip().lower()
+            qty = str(quantity_str).strip().lower()
+
+            # 解析数量：值与单位
+            qty_match = re.match(r"(\d+\.?\d*)\s*(个|盒|瓶|支|片|粒|包|袋|箱|克|g|mg|毫克|ml|毫升)?", qty)
+            if not qty_match:
+                return '', ''
+
+            qty_value = float(qty_match.group(1))
+            qty_unit = qty_match.group(2) or ''
+
+            # 解析规格：基础含量与单位，及包装内单位数量（乘数）
+            # 支持 "50mg*12"、"0.25g×12片"、"125 mg x 12" 等格式
+            base_match = re.search(r"(\d+\.?\d*)\s*(mg|g|毫克|克|ml|毫升)", spec)
+            if not base_match:
+                return '', ''
+
+            base_value = float(base_match.group(1))
+            base_unit = base_match.group(2)
+
+            # 查找乘数（包装内单位数量）
+            mult_match = re.search(r"[x×*]\s*(\d+)", spec)
+            pieces_per_pkg = int(mult_match.group(1)) if mult_match else 1
+
+            # 判断数量单位是否为包装单位（盒/瓶/包/袋/箱）或直接单位（片/粒/支/个）
+            pkg_units = {'盒', '瓶', '包', '袋', '箱'}
+            direct_units = {'片', '粒', '支', '个'}
+
+            # 如果数量单位是质量或体积（克/g/mg/ml），直接用数量值作为总量，单位为其对应单位
+            if qty_unit in {'克', 'g', 'mg', '毫克', 'ml', '毫升'}:
+                # 统一返回英文单位，便于后续映射
+                unit_map = {'克': 'g', 'g': 'g', '毫克': 'mg', 'mg': 'mg', '毫升': 'ml', 'ml': 'ml'}
+                return (str(qty_value), unit_map.get(qty_unit, ''))
+
+            # 计算总件数（片/粒/支/个）
+            if qty_unit in pkg_units:
+                total_pieces = qty_value * pieces_per_pkg
+            elif qty_unit in direct_units or qty_unit == '':
+                # 若单位为空，视为直接单位（常见Excel未录入单位的情况）
+                total_pieces = qty_value
+            else:
+                # 未知单位，不计算
+                return '', ''
+
+            # 计算总用量：基础含量 × 件数
+            total_amount = base_value * total_pieces
+
+            # 保留最多两位小数（去除无意义的 .0）
+            if abs(total_amount - round(total_amount)) < 1e-9:
+                total_amount_str = str(int(round(total_amount)))
+            else:
+                total_amount_str = f"{total_amount:.2f}".rstrip('0').rstrip('.')
+
+            # 规格单位标准化为英文（mg/g/ml），用于后续映射
+            unit_norm = {'毫克': 'mg', '克': 'g', 'mg': 'mg', 'g': 'g', '毫升': 'ml', 'ml': 'ml'}.get(base_unit, '')
+
+            return total_amount_str, unit_norm
+
+        except Exception as e:
+            logger.warning(f"规格与数量解析总用量失败: {e}")
+            return '', ''
+
     def fill_antibiotic_detail(self, row_data: Dict[str, Any]) -> bool:
         """
         填写抗菌药详细信息表单
@@ -895,19 +976,23 @@ class FormFiller:
                 dosage_info = self._parse_dosage(drug_dosage)
                 logger.info(f"解析用法用量结果: {dosage_info}")
 
-            # 4. 解析数量（总用量）
-            # 数量格式如 "3.00个", "4.00盒"
+            # 4. 解析规格与数量，计算总用量（规格*数量）
             total_amount = ''
             total_unit = ''
-            if drug_quantity:
-                # 提取数字和单位
-                qty_match = re.match(r'(\d+\.?\d*)\s*(个|盒|瓶|支|片|粒|包|袋|克|g|mg|毫克)?', str(drug_quantity))
-                if qty_match:
-                    total_amount = qty_match.group(1)
-                    if qty_match.group(2):
-                        total_unit = qty_match.group(2)
+            if drug_spec or drug_quantity:
+                computed_amount, computed_unit = self._compute_total_from_spec_and_quantity(drug_spec or '', drug_quantity or '')
+                total_amount = computed_amount
+                total_unit = computed_unit
 
-            # 如果没有从数量提取到，使用用法用量中的剂量
+            # 如果无法从规格×数量计算，回退到数量或用法用量中的剂量
+            if not total_amount:
+                if drug_quantity:
+                    qty_match = re.match(r'(\d+\.?\d*)\s*(个|盒|瓶|支|片|粒|包|袋|克|g|mg|毫克)?', str(drug_quantity))
+                    if qty_match:
+                        total_amount = qty_match.group(1)
+                        if qty_match.group(2):
+                            total_unit = qty_match.group(2)
+
             if not total_amount and dosage_info.get('dose_value'):
                 total_amount = dosage_info['dose_value']
                 total_unit = dosage_info.get('dose_unit', '')
@@ -919,7 +1004,7 @@ class FormFiller:
                 total_medicine_input.clear()
                 total_medicine_input.send_keys(str(total_amount))
 
-            # 6. 选择总用量单位
+            # 6. 选择总用量单位（g 对应 克, mg 对应 毫克）
             if total_unit:
                 unit_value = self._normalize_unit(total_unit, 'dose')
                 logger.info(f"选择总用量单位: {total_unit} -> value={unit_value}")
